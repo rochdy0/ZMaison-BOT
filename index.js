@@ -16,6 +16,7 @@ client.commands = new Collection();
 for (let file of commandFiles) {
     file = file.replace('.js', '')
     const command = require(`./SlashCommands/${file}.js`);
+    console.log(command)
     SlashCommands[file] = command[file]
     SlashData.push(command.data);
 }
@@ -40,4 +41,8 @@ const rest = new REST({ version: '9' }).setToken(discord_token);
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
+});
+
+client.on('interactionCreate', interaction => {
+    SlashCommands[interaction.commandName](interaction, client)
 });
