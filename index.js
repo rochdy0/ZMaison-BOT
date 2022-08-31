@@ -6,6 +6,8 @@ const { Routes } = require('discord-api-types/v9');
 const fs = require('fs');
 const discord_token = require('./token.json').token
 
+const StringHat = require('./Automatisations/SortingHat.js')
+
 client.login(discord_token);
 
 // Ajout des SlashCommands sur Discord
@@ -16,7 +18,6 @@ client.commands = new Collection();
 for (let file of commandFiles) {
     file = file.replace('.js', '')
     const command = require(`./SlashCommands/${file}.js`);
-    console.log(command)
     SlashCommands[file] = command[file]
     SlashData.push(command.data);
 }
@@ -41,8 +42,10 @@ const rest = new REST({ version: '9' }).setToken(discord_token);
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
+    StringHat.checkMessage(client)
 });
 
 client.on('interactionCreate', interaction => {
-    SlashCommands[interaction.commandName](interaction, client)
+    if (interaction.customId === "selectmaison") StringHat.CreateUser(interaction, client)
+    else SlashCommands[interaction.commandName](interaction, client)
 });

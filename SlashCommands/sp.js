@@ -14,15 +14,15 @@ module.exports = {
                 "choices": [
                     {
                         "name": "Maison des samurais",
-                        "value": "1"
+                        "value": "0"
                     },
                     {
                         "name": "Maison des chevaliers",
-                        "value": "2"
+                        "value": "1"
                     },
                     {
                         "name": "Maison des ninja",
-                        "value": "3"
+                        "value": "2"
                     }
                 ],
                 "required": true
@@ -52,7 +52,7 @@ module.exports = {
                 else {
                     db.run(`UPDATE Maisons SET points = points + ${interaction.options["_hoistedOptions"][1].value} WHERE id = ${+interaction.options["_hoistedOptions"][0].value}`)
                 }
-                interaction.reply({embeds: [embed]})
+                interaction.reply({ embeds: [embed] })
             }
         })
     }
