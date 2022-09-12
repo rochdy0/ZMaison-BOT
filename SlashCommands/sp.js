@@ -13,15 +13,15 @@ module.exports = {
                 "description": "Choisissez le nom de la maison",
                 "choices": [
                     {
-                        "name": "Maison des samurais",
+                        "name": "Les fils de Ragnar",
                         "value": "0"
                     },
                     {
-                        "name": "Maison des chevaliers",
+                        "name": "Les héritiers de Guillaume le conquérant",
                         "value": "1"
                     },
                     {
-                        "name": "Maison des ninja",
+                        "name": "Les disciples d'Attila le Hun ",
                         "value": "2"
                     }
                 ],

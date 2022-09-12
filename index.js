@@ -44,6 +44,9 @@ const rest = new REST({ version: '9' }).setToken(discord_token);
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
     StringHat.checkMessage(client)
+    require('./Automatisations/MaisonScore.js').checkMessage(client)
+    setInterval(function () { require('./Automatisations/MaisonScore.js').checkMessage(client) }, 120000);
+
 });
 
 client.on('interactionCreate', interaction => {
@@ -55,6 +58,7 @@ client.on('interactionCreate', interaction => {
 client.on('messageCreate', function (message) {
     db.all(`SELECT monthly_messages FROM Users WHERE user_id = ${message.author.id}`, function (err, row) {
         if (err) console.log(`Error obj: ${err}`);
+        else if (row.length === 0) return;
         else if (row[0].monthly_message > 1000) return;
         else {
             db.run(`UPDATE Users SET points = points + 1, monthly_messages = monthly_messages + 1 WHERE user_id = ${message.author.id}`)

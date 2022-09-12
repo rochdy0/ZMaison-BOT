@@ -9,6 +9,7 @@
   "author": "Rochdy",
   "license": "ISC",
   "dependencies": {
+    "@napi-rs/canvas": "^0.1.29",
     "discord.js": "^14.3.0",
     "sqlite3": "^5.0.11"
   }
