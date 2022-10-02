@@ -1,13 +1,21 @@
 const { REST } = require('@discordjs/rest');
 const { Client, GatewayIntentBits, Collection, InteractionType } = require('discord.js');
+const { Agent } = require('undici')
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 const { Routes } = require('discord-api-types/v9');
 const fs = require('fs');
 const sqlite3 = require('sqlite3');
+const schedule = require('node-schedule');
 const db = new sqlite3.Database('database.db')
 const discord_token = require('./token.json').token
-
 const StringHat = require('./Automatisations/SortingHat.js')
+
+const agent = new Agent({
+    connect: {
+      timeout: 30000
+    }
+  })
+client.rest.setAgent(agent)
 
 client.login(discord_token);
 
@@ -28,7 +36,7 @@ const rest = new REST({ version: '9' }).setToken(discord_token);
 (async () => {
     try {
         await rest.put(
-            Routes.applicationGuildCommands('1014173396537462864', '1014511199817306172'),
+            Routes.applicationGuildCommands('1014173396537462864', '610928463590981634'),
             { body: SlashData });
         console.log('Application SlashCommands chargées avec succès');
     } catch (error) {
@@ -38,31 +46,45 @@ const rest = new REST({ version: '9' }).setToken(discord_token);
 // Ajout des SlashCommands sur Discord
 
 
-
+client.on('error', () =>  {console.log});
 
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
     StringHat.checkMessage(client)
     require('./Automatisations/MaisonScore.js').checkMessage(client)
-    setInterval(function () { require('./Automatisations/MaisonScore.js').checkMessage(client) }, 120000);
-
+    setInterval(function () { require('./Automatisations/MaisonScore.js').checkMessage(client) }, 10 * 60 * 1000);
+    setInterval(function () { require('./Automatisations/MaisonScore.js').channelName(client) }, 10 * 60 * 1000);
+    schedule.scheduleJob({ hour: 00, minute: 00 }, () => {
+        db.run(`UPDATE Users SET bool_training = 0`)
+    });
+    schedule.scheduleJob({ date: 1, hour: 00, minute: 00 }, () => {
+        db.run(`UPDATE Users SET monthly_messages = 0`)
+    });
 });
 
 client.on('interactionCreate', interaction => {
     if (interaction.customId === "sh_button") { StringHat.CreateUser(interaction, client) }
     else if (interaction.isModalSubmit()) { require('./SlashCommands/obj.js').objsent(interaction, client) }
+    else if (interaction.customId === "wk_button") { require('./Automatisations/MaisonScore.js').trainingPoint(interaction) }
+    else if (interaction.customId === 'previousbtn' || interaction.customId === 'nextbtn') null;
     else SlashCommands[interaction.commandName](interaction, client)
 });
 
 client.on('messageCreate', function (message) {
+    if (message.author.bot) return;
+    if (message.channelId === '611263764528103443' || message.channelId === '696452669916840028' || message.channelId === '766035789439565834' || message.channelId === '663888009737011220' || message.channelId === '883738265893617685' || message.channelId === '925725041386209280') return;
+    let points = Math.floor(Math.random() * 2)
+    if (points === 0) return;
+    // if (message.channelId === '987858081432084500') console.log(message)
     db.all(`SELECT monthly_messages FROM Users WHERE user_id = ${message.author.id}`, function (err, row) {
         if (err) console.log(`Error obj: ${err}`);
         else if (row.length === 0) return;
         else if (row[0].monthly_message > 1000) return;
         else {
-            db.run(`UPDATE Users SET points = points + 1, monthly_messages = monthly_messages + 1 WHERE user_id = ${message.author.id}`)
-            db.run(`UPDATE Maisons SET points = points + 1 WHERE maison_id = (SELECT maison_id FROM Users WHERE user_id = '${message.author.id}') `)
+            let points = Math.floor(Math.random() * 2)
+            db.run(`UPDATE Users SET points = points + ${points}, monthly_messages = monthly_messages + 1 WHERE user_id = ${message.author.id}`)
+            db.run(`UPDATE Maisons SET points = points + ${points} WHERE maison_id = (SELECT maison_id FROM Users WHERE user_id = '${message.author.id}') `)
         }
     })
 });

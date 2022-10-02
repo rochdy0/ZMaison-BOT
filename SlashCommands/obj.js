@@ -37,10 +37,20 @@ module.exports = {
         })
     },
     objsent: function (interaction, client) {
-        const [ObjTheme, ObjDet] = [interaction.fields.getTextInputValue('ObjThemeInput'), interaction.fields.getTextInputValue('ObjDetInput')]
-        let channel = client.channels.resolve('1015291768318738523')
-        channel.send(`${ObjTheme} ${ObjDet}`)
-        interaction.reply("Merci d'avoir envoyé ton objectif")
-        db.run(`UPDATE Users SET objectif = 1 WHERE user_id = ${interaction.user.id}`)
+        db.all(`SELECT maison_id FROM Users WHERE user_id=${interaction.user.id}`, function (err, row) {
+            if (err) { console.log(`Error obj objsent: ${err}`); }
+            else {
+                const roles = ["1021809011277967370", "1021809132707250176", "1021809267113725973"]
+                const [ObjTheme, ObjDet] = [interaction.fields.getTextInputValue('ObjThemeInput'), interaction.fields.getTextInputValue('ObjDetInput')]
+                let channel = client.channels.resolve('1021829345536385094')
+                channel.send(`**Objectif de ${interaction.user.username} chez les <@&${roles[row[0].maison_id]}>**
+__*Thème de l'objectif ? :*__
+${ObjTheme} 
+__*Détail de l'objectif :*__
+${ObjDet}`)
+                interaction.reply("Merci d'avoir envoyé ton objectif")
+                db.run(`UPDATE Users SET objectif = 1 WHERE user_id = ${interaction.user.id}`)
+            }
+        })
     }
 }
