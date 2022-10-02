@@ -33,7 +33,9 @@ module.exports = {
             if (err) { console.log(`Error obj: ${err}`); interaction.reply("La commande marche pas dis à Zald de check") }
             else if (row.length === 0) interaction.reply("Tu n'as pas encore de Maison")
             else if (row[0].objectif === 1) interaction.reply("Tu as déjà rentré ton objectif")
-            else await interaction.showModal(modal);
+            else {
+                await interaction.showModal(modal);
+            }
         })
     },
     objsent: function (interaction, client) {

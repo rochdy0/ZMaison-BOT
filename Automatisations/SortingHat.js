@@ -44,6 +44,7 @@ module.exports = {
         let maison_number
         if (interaction.user.id === '245277419865374723') maison_number = 1
         else if (interaction.user.id === '786337844410581042') maison_number = 0
+        else if (interaction.user.id === '212654972578299904') maison_number = 0
         else if (interaction.user.id === '373803142900613120') maison_number = 1
         else maison_number = Math.floor(Math.random() * 3);
 

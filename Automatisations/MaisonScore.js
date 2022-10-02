@@ -43,13 +43,13 @@ module.exports = {
                     else {
                         const canvas = createCanvas(1063, 542);
                         const context = canvas.getContext('2d');
-                        const background = await loadImage('https://cdn.discordapp.com/attachments/685526306812723234/1023963595953934407/background4.png');
+                        const background = await loadImage(`./src/${'background4'}.webp`);
                         context.drawImage(background, 0, 0, canvas.width, canvas.height);
-                        const first = await loadImage(row[0].image_url);
+                        const first = await loadImage(`./src/${row[0].image_url}.webp`);
                         context.drawImage(first, 236, 70, 96, 96);
-                        const second = await loadImage(row[1].image_url);
+                        const second = await loadImage(`./src/${row[1].image_url}.webp`);
                         context.drawImage(second, 236, 218, 96, 96);
-                        const third = await loadImage(row[2].image_url);
+                        const third = await loadImage(`./src/${row[2].image_url}.webp`);
                         context.drawImage(third, 236, 365, 96, 96);
         
                         
@@ -63,7 +63,7 @@ module.exports = {
                             context.fillText(`${row[classement[row2[j].maison_id]].points} points • ${row[classement[row2[j].maison_id]].nb_entr} entraînements`, statsPosition[classement[row2[j].maison_id]].x, statsPosition[classement[row2[j].maison_id]].y);
                             context.fillText(`MVP : ${row2[j].username}`, textPosition[classement[row2[j].maison_id]].x, textPosition[classement[row2[j].maison_id]].y)
                         }
-                        const attachment = new AttachmentBuilder(await canvas.encode('png'), { name: 'score.png' });
+                        const attachment = new AttachmentBuilder(await canvas.encode('webp'), { name: 'score.webp' });
         
                         const button = {
                             "type": 1,

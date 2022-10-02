@@ -40,7 +40,7 @@ const paginationEmbed = async (
         filter,
         time: timeout,
     });
-
+    // console.log(i)
     collector.on("collect", async (i) => {
         switch (i.customId) {
             case buttonList[0].customId:
