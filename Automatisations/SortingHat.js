@@ -1,8 +1,5 @@
 'use strict';
 
-const sqlite3 = require('sqlite3');
-const db = new sqlite3.Database('database.db')
-
 const embedChose = {
     color: 0xffa600,
     title: 'Choisissez votre Maison',
@@ -27,43 +24,52 @@ const row = {
     ]
 }
 
-const roles = ["1021809011277967370", "1021809132707250176", "1021809267113725973"]
-const chan = ["1021418031898951721", "1021418112156975155", "1021418175293821040"]
-const name = ["fils de Ragnar", "héritiers de Guillaume le conquérant", "disciples d'Attila le Hun "]
 module.exports = {
     // Checks if a message already exist, sends a new one if not.
     checkMessage: function (client) {
-        let channelRole = client.channels.resolve('1021418453556531292');
+        let channelRole = client.channels.resolve(process.env.DISCORD_CHANNEL_CHOIXPEAU_MAGIQUE_ID);
         channelRole.messages.fetch().then(messagePage => {
             messagePage.size < 1 ? channelRole.send({ embeds: [embedChose], components: [row] }) : null;
         })
     },
 
-    // Adds or Removes role depending on the member already have it or not.
-    CreateUser: function (interaction, client) {
-        let maison_number
-        if (interaction.user.id === '245277419865374723') maison_number = 1
-        else if (interaction.user.id === '786337844410581042') maison_number = 0
-        else if (interaction.user.id === '212654972578299904') maison_number = 0
-        else if (interaction.user.id === '373803142900613120') maison_number = 1
-        else maison_number = Math.floor(Math.random() * 3);
+    // Adds  or Removes role depending on the member already have it or not.
+    CreateUser: function (interaction, client, pool) {
+        // let maison_number = Math.floor(Math.random() * 3);
+        let maison_number = 2;
 
-        const embedAdd = {
-            color: 0x10CC38,
-            title: 'Te voilà !!!',
-            description: `*Bienvenue chez* **Les ${name[maison_number]}** *avec tous les <@&${roles[maison_number]}>*
-            N'oublie pas d'utiliser la commande /obj afin de rentrer ton objectif à atteindre en fin de saison. <:Doku:633642377378267136>`
-        }
-        let channel = client.channels.resolve(chan[maison_number])
-        db.all(`SELECT * FROM Users WHERE user_id = ${interaction.user.id}`, async function (err, row) {
+
+
+        pool.query(`
+            WITH UserExist AS (
+                SELECT COUNT(userID) AS boolExist
+                FROM Utilisateurs
+                WHERE userID = ?
+            )
+            SELECT U.boolExist, M.nom, M.channelID, M.roleID
+            FROM Maisons M JOIN UserExist U
+            WHERE maisonID = ?;
+        `, [interaction.user.id, maison_number], async function (err, row) {
             if (err) { console.log(`Error SortingHat CreateUser: ${err}`); }
-            else if (row.length === 1) { client.channels.resolve('611864040699985931').send(`<@${interaction.user.id}> Tu es déjà assigné à une Maison, il va falloir accepter ton sort <:pleurerire:623849102689697812>`) }
+            else if (row[0].boolExist >= 1) { client.channels.resolve(process.env.DISCORD_CHANNEL_BOT_MEME_SPAM_ID).send(`<@${interaction.user.id}> Tu es déjà assigné à une Maison, il va falloir accepter ton sort <:pleurerire:623849102689697812>`) }
             else {
+
+                const embedAdd = {
+                    color: 0x10CC38,
+                    title: 'Te voilà !!!',
+                    description: `*Bienvenue chez* **Les ${row[0].nom}** *avec tous les <@&${row[0].roleID + "test"}>*
+N'oublie pas d'utiliser la commande /obj afin de rentrer ton objectif à atteindre en fin de saison. <:Doku:633642377378267136>`
+                }
+
+                let channel = client.channels.resolve(row[0].channelID)
                 interaction.guild.members.fetch(interaction.user.id).then(async (member) => {
-                    member.roles.add(roles[maison_number])
+                    member.roles.add(row[0].roleID)
                     channel.send(`<@${interaction.user.id}> vient d'arriver, merci de l'accueillir comme il se doit <:LogoEDT:901498744976056381>`)
                     channel.send({ embeds: [embedAdd], ephemeral: true })
-                    db.run(`INSERT INTO users (user_id, username, maison_id) VALUES (${member.user.id}, '${member.user.username}', ${maison_number})`)
+                    pool.query(`
+                        INSERT INTO Utilisateurs (userID, username, maisonID, arriveDate) 
+                        VALUES (?, ?, ?, ?)
+                        `, [member.user.id, member.user.username, maison_number, new Date().toISOString().substring(0, 10)])
                 })
             }
         })

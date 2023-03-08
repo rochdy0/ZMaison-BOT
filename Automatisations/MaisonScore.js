@@ -1,102 +1,121 @@
 const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas')
 const { AttachmentBuilder } = require('discord.js');
-const sqlite3 = require('sqlite3');
-const db = new sqlite3.Database('database.db')
 
-GlobalFonts.registerFromPath('./Roboto-Regular.ttf', 'Roboto-Regular');
-// console.info(GlobalFonts.families[0])
 module.exports = {
-    trainingPoint: function (interaction) {
-        db.all(`SELECT bool_training, username FROM Users WHERE user_id = ${interaction.user.id}`, function (err, row) {
+    trainingPoint: function (interaction, pool) {
+        pool.query(`
+        WITH Exist AS(
+            SELECT COUNT(userID) AS boolExist, userID
+            FROM Utilisateurs
+            WHERE userID = ?
+        ),
+        Training AS (
+        SELECT COUNT(evenementID) AS boolTraining
+        FROM Evenements
+        WHERE userID = ? AND evenementType = 0 AND date = ?
+        )
+        SELECT boolExist, boolTraining
+        FROM Training JOIN Exist;
+        `, [interaction.user.id, interaction.user.id, new Date().toISOString().substring(0, 10)], function (err, row) {
             if (err) { console.log(`Error MaisonScore trainingPoint: ${err}`); }
-            else if (row.length === 0) {interaction.reply({ content: `<@${interaction.user.id}> Tu ne fais partie d'aucune éqipe, va vite dans <#1021418453556531292> pour appartenir à l'une d'entre elle`, ephemeral: true })}
-            else if (row[0].bool_training === 1) {
+            else if (row[0].boolExist === 0) { interaction.reply({ content: `<@${interaction.user.id}> Tu ne fais partie d'aucune éqipe, va vite dans <#1021418453556531292> pour appartenir à l'une d'entre elle`, ephemeral: true }) }
+            else if (row[0].boolTraining >= 1) {
                 interaction.reply({ content: `<@${interaction.user.id}> Tu t'es déjà entrainé aujourd'hui`, ephemeral: true })
             }
             else {
                 console.log(row)
-                db.run(`UPDATE Users SET bool_training = 1, nb_training = nb_training + 1, points = points + 100 WHERE user_id = ${interaction.user.id}`)
-                db.run(`UPDATE Maisons SET nb_entr = nb_entr + 1, points = points + 100 WHERE maison_id = (SELECT maison_id FROM Users WHERE user_id = ${interaction.user.id})`)
+                pool.query(`
+                INSERT INTO Evenements (evenementType, userID, points, date) 
+                VALUES (0, ?, 100, ?);
+                `, [interaction.user.id, new Date().toISOString().substring(0, 10)])
                 interaction.reply({ content: `<@${interaction.user.id}> Ton entrainement a bien été pris en compte`, ephemeral: true })
             }
         })
     },
 
-    checkMessage: function (client) {
-        db.all(`SELECT points, nb_entr, maison_id, name, image_url FROM Maisons ORDER BY points DESC`, async function (err, row) {
+    checkMessage: function (client, pool) {
+        pool.query(`        
+        WITH classementTable AS (
+            SELECT maisonID, username, SUM(points) AS points,
+                   ROW_NUMBER() OVER (PARTITION BY maisonID ORDER BY SUM(points) DESC) AS position
+            FROM Evenements JOIN Utilisateurs USING(userID)
+            GROUP BY maisonID, username
+          ),
+          entrainementTable AS (
+              SELECT U.maisonID, COUNT(E.evenementID) AS nbENtrainements
+              FROM Utilisateurs U JOIN Evenements E USING (userID)
+              WHERE E.evenementType = 0
+              GROUP BY U.maisonID
+          ),
+          pointsTable AS (
+              SELECT U.maisonID, SUM(E.points) AS pointsMaison
+              FROM Utilisateurs U JOIN Evenements E USING (userID)
+              GROUP BY U.maisonID
+          )
+          SELECT M.maisonID, M.nom, C.username, E.nbENtrainements, P.pointsMaison
+          FROM classementTable C JOIN entrainementTable E USING (maisonID)
+                                 JOIN pointsTable P USING (maisonID)
+                                 JOIN Maisons M USING (maisonID)
+          WHERE C.position = 1
+          ORDER BY P.pointsMaison DESC;
+        `, async function (err, row) {
             if (err) { console.log(`Error MaisonScore chechMessage: ${err}`); }
             else {
-                const classement = []
-                for (let i=0;i<3;i++) classement[row[i].maison_id] = i 
-                db.all(`WITH added_row_number AS (
-                    SELECT
-                      *,
-                      ROW_NUMBER() OVER(PARTITION BY maison_id ORDER BY points DESC) AS row_number
-                    FROM Users
-                    )
-                    SELECT
-                      username, maison_id
-                    FROM added_row_number
-                    WHERE row_number = 1;`, async function (err2, row2) {
-                    if (err) { console.log(`Error MaisonScore chechMessage2: ${err}`); }
-                    else if (row2.length < 3) console.log('Aucun participant trouvé')
-                    else {
-                        const canvas = createCanvas(1063, 542);
-                        const context = canvas.getContext('2d');
-                        const background = await loadImage(`./src/${'background4'}.webp`);
-                        context.drawImage(background, 0, 0, canvas.width, canvas.height);
-                        const first = await loadImage(`./src/${row[0].image_url}.webp`);
-                        context.drawImage(first, 236, 70, 96, 96);
-                        const second = await loadImage(`./src/${row[1].image_url}.webp`);
-                        context.drawImage(second, 236, 218, 96, 96);
-                        const third = await loadImage(`./src/${row[2].image_url}.webp`);
-                        context.drawImage(third, 236, 365, 96, 96);
-        
-                        
-                        context.font = "sans-serif 27px";
-                        context.fillStyle = '#ffffff';
-                        const teamNamePosition = [{x: 380, y: 92}, {x: 380, y: 240}, {x: 380, y: 387}]
-                        const statsPosition = [{x: 380, y: 127}, {x: 380, y: 275}, {x: 380, y: 422}]
-                        const textPosition = [{x: 380, y: 162}, {x: 380, y: 310}, {x: 380, y: 457}]
-                        for (let j=0;j<3;j++) {
-                            context.fillText(`${row[classement[row2[j].maison_id]].name}`, teamNamePosition[classement[row2[j].maison_id]].x, teamNamePosition[classement[row2[j].maison_id]].y);
-                            context.fillText(`${row[classement[row2[j].maison_id]].points} points • ${row[classement[row2[j].maison_id]].nb_entr} entraînements`, statsPosition[classement[row2[j].maison_id]].x, statsPosition[classement[row2[j].maison_id]].y);
-                            context.fillText(`MVP : ${row2[j].username}`, textPosition[classement[row2[j].maison_id]].x, textPosition[classement[row2[j].maison_id]].y)
+                const canvas = createCanvas(1063, 542);
+                const context = canvas.getContext('2d');
+                const background = await loadImage(`./assets/background.webp`);
+                context.drawImage(background, 0, 0, canvas.width, canvas.height);
+                const first = await loadImage(`./assets/${row[0].maisonID}.webp`);
+                context.drawImage(first, 236, 70, 96, 96);
+                const second = await loadImage(`./assets/${row[1].maisonID}.webp`);
+                context.drawImage(second, 236, 218, 96, 96);
+                const third = await loadImage(`./assets/${row[2].maisonID}.webp`);
+                context.drawImage(third, 236, 365, 96, 96);
+
+
+                context.font = "sans-serif 27px";
+                context.fillStyle = '#ffffff';
+                const teamNamePosition = [{ x: 380, y: 92 }, { x: 380, y: 240 }, { x: 380, y: 387 }]
+                const statsPosition = [{ x: 380, y: 127 }, { x: 380, y: 275 }, { x: 380, y: 422 }]
+                const textPosition = [{ x: 380, y: 162 }, { x: 380, y: 310 }, { x: 380, y: 457 }]
+                context.fillText(`test`, 380, 92);
+                for (let j = 0; j < 3; j++) {
+                    context.fillText(`${row[j].nom}`, teamNamePosition[row[j].maisonID].x, teamNamePosition[row[j].maisonID].y);
+                    context.fillText(`${row[j].pointsMaison} points • ${row[j].nbENtrainements} entraînements`, statsPosition[row[j].maisonID].x, statsPosition[row[j].maisonID].y);
+                    context.fillText(`MVP : ${row[j].username}`, textPosition[row[j].maisonID].x, textPosition[row[j].maisonID].y)
+                }
+                const attachment = new AttachmentBuilder(await canvas.encode('webp'), { name: 'score.webp' });
+
+                const button = {
+                    "type": 1,
+                    "components": [
+                        {
+                            "type": 2,
+                            "label": "Entrainement fait ✅",
+                            "style": 2,
+                            "custom_id": "wk_button"
                         }
-                        const attachment = new AttachmentBuilder(await canvas.encode('webp'), { name: 'score.webp' });
-        
-                        const button = {
-                            "type": 1,
-                            "components": [
-                                {
-                                    "type": 2,
-                                    "label": "Entrainement fait ✅",
-                                    "style": 2,
-                                    "custom_id": "wk_button"
-                                }
-                            ]
-                        }
-        
-                        let channelScore = client.channels.resolve('1021421913358205040');
-                        channelScore.messages.fetch().then(messagePage => {
-                            messagePage.forEach(msg => msg.delete())
-                            channelScore.send({ files: [attachment], components: [button] })
-                        })
-                    }
+                    ]
+                }
+
+                let channelScore = client.channels.resolve(process.env.DISCORD_CHANNEL_SCORE_ID);
+                channelScore.messages.fetch().then(messagePage => {
+                    messagePage.forEach(msg => msg.delete())
+                    channelScore.send({ files: [attachment], components: [button] })
                 })
             }
         })
     },
 
-    channelName: function (client) {
+    channelName: function (client, pool) {
         const emojis = ["｟🥇｠", "｟🥈｠", "｟🥉｠"]
-        db.all(`SELECT chan_id, chan_name FROM Maisons ORDER BY points DESC`, function (err, row) {
-            if (err) { console.log(`Error MaisonScore channelName: ${err}`); }
-            else {
-                for (let i=0;i<3;i++) {
-                    client.channels.resolve(row[i].chan_id.toString()).setName(emojis[i]+row[i].chan_name)
-                }
-            }
-        })
+        // db.all(`SELECT chan_id, chan_name FROM Maisons ORDER BY points DESC`, function (err, row) {
+        //     if (err) { console.log(`Error MaisonScore channelName: ${err}`); }
+        //     else {
+        //         for (let i=0;i<3;i++) {
+        //             client.channels.resolve(row[i].chan_id.toString()).setName(emojis[i]+row[i].chan_name)
+        //         }
+        //     }
+        // })
     }
 }

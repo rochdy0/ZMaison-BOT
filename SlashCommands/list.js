@@ -1,80 +1,5 @@
 const Discord = require('discord.js')
-const sqlite3 = require('sqlite3');
-const db = new sqlite3.Database('database.db')
-
-const paginationEmbed = async (
-    interaction,
-    pages,
-    buttonList,
-    timeout = 120000
-) => {
-    if (!pages) throw new Error("Pages are not given.");
-    if (!buttonList) throw new Error("Buttons are not given.");
-    if (buttonList[0].style === "LINK" || buttonList[1].style === "LINK")
-        throw new Error(
-            "Link buttons are not supported with discordjs-button-pagination"
-        );
-    if (buttonList.length !== 2) throw new Error("Need two buttons.");
-
-    let page = 0;
-
-    const row = new Discord.ActionRowBuilder()
-    .addComponents(buttonList);
-
-    //has the interaction already been deferred? If not, defer the reply.
-    if (interaction.deferred == false) {
-        await interaction.deferReply();
-    }
-
-    const curPage = await interaction.editReply({
-        embeds: [pages[page].setFooter({ text: `Page ${page + 1} / ${pages.length}` })],
-        components: [row],
-        fetchReply: true,
-    });
-
-    const filter = (i) =>
-        i.customId === buttonList[0].customId ||
-        i.customId === buttonList[1].customId;
-
-    const collector = await curPage.createMessageComponentCollector({
-        filter,
-        time: timeout,
-    });
-    // console.log(i)
-    collector.on("collect", async (i) => {
-        switch (i.customId) {
-            case buttonList[0].customId:
-                page = page > 0 ? --page : pages.length - 1;
-                break;
-            case buttonList[1].customId:
-                page = page + 1 < pages.length ? ++page : 0;
-                break;
-            default:
-                break;
-        }
-        await i.deferUpdate();
-        await i.editReply({
-            embeds: [pages[page].setFooter({ text: `Page ${page + 1} / ${pages.length}` })],
-            components: [row],
-        });
-        collector.resetTimer();
-    });
-
-    collector.on("end", (_, reason) => {
-        if (reason !== "messageDelete") {
-            const disabledRow = new Discord.ActionRowBuilder().addComponents(
-                buttonList[0].setDisabled(true),
-                buttonList[1].setDisabled(true)
-            );
-            curPage.edit({
-                embeds: [pages[page].setFooter({ text: `Page ${page + 1} / ${pages.length}` })],
-                components: [disabledRow],
-            });
-        }
-    });
-
-    return curPage;
-};
+const { Pagination } = require("discordjs-button-embed-pagination");
 
 
 
@@ -108,21 +33,22 @@ module.exports = {
     },
 
     list: function (interaction) {
-        db.all(`SELECT username, points, nb_training FROM Users ORDER BY points DESC`, function (err, row) {
+        db.all(`SELECT username, points, nb_training FROM Users WHERE maison_id = ${+interaction.options["_hoistedOptions"][0].value} ORDER BY points DESC`, function (err, row) {
             if (err) { console.log(`Error sp: ${err}`); interaction.reply("La commande marche pas dis à Zald de check") }
             else {
                 const page = []
                 const name = ["Vikings", "Chevaliers", "Huns"]
 
-
-                for (let i = 0; i < (row.length / 10); i++) {
+                while (row.length > 0) {
                     let description = ""
-                    if (row.length < 10) {
-                        for (let j = 0; j < row.length; j++) { description = description + `**${row[j].username}** : ${row[j].points} points  ${row[j].nb_training} entraînements\n` }
+                    if (row.length < 5) {
+                        let j;
+                        for (j = 0; j < row.length; j++) { description = description + `**${row[j].username}** : ${row[j].points} points  ${row[j].nb_training} entraînements\n` }
+                        row.splice(0, j);
                     }
                     else {
-                        for (let j = 0; j < 10; j++) { description = description + `**${row[j].username}** : ${row[j].points} points  ${row[j].nb_training} entraînements\n` }
-                        row.splice(0, 10);
+                        for (let j = 0; j < 5; j++) { description = description + `**${row[j].username}** : ${row[j].points} points  ${row[j].nb_training} entraînements\n` }
+                        row.splice(0, 5);
                     }
 
                     const Embed = new Discord.EmbedBuilder()
@@ -131,18 +57,8 @@ module.exports = {
                         .setColor(`black`)
                     page.push(Embed)
                 }
-                const button1 = new Discord.ButtonBuilder()
-                    .setCustomId("previousbtn")
-                    .setLabel("⏪")
-                    .setStyle("Secondary");
-
-                const button2 = new Discord.ButtonBuilder()
-                    .setCustomId("nextbtn")
-                    .setLabel("⏩")
-                    .setStyle("Secondary");
-                const buttonList = [button1, button2];
-                const timeout = 20000
-                paginationEmbed(interaction, page, buttonList, timeout);
+                new Pagination(interaction.channel, page, "page").paginate();
+                interaction.reply("Voici la liste")
             }
         })
     }
