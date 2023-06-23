@@ -2,4 +2,5 @@
 *.gitignore*
 *test.js*
 *Dockerfile*
+*docker-compose.yml*
 *.env*

@@ -35,21 +35,23 @@ module.exports = {
 
     // Adds  or Removes role depending on the member already have it or not.
     CreateUser: function (interaction, client, pool) {
-        // let maison_number = Math.floor(Math.random() * 3);
-        let maison_number = 2;
-
-
-
+        let maison_number = 1;
+        // do
+        // {
+        //     maison_number = Math.floor(Math.random() * 3);
+        // }
+        // while (maison_number == 1)
         pool.query(`
             WITH UserExist AS (
                 SELECT COUNT(userID) AS boolExist
                 FROM Utilisateurs
                 WHERE userID = ?
             )
-            SELECT U.boolExist, M.nom, M.channelID, M.roleID
+            SELECT U.boolExist, M.nomMaison, M.channelID, M.roleID
             FROM Maisons M JOIN UserExist U
             WHERE maisonID = ?;
         `, [interaction.user.id, maison_number], async function (err, row) {
+            console.log(row)
             if (err) { console.log(`Error SortingHat CreateUser: ${err}`); }
             else if (row[0].boolExist >= 1) { client.channels.resolve(process.env.DISCORD_CHANNEL_BOT_MEME_SPAM_ID).send(`<@${interaction.user.id}> Tu es déjà assigné à une Maison, il va falloir accepter ton sort <:pleurerire:623849102689697812>`) }
             else {
@@ -57,7 +59,7 @@ module.exports = {
                 const embedAdd = {
                     color: 0x10CC38,
                     title: 'Te voilà !!!',
-                    description: `*Bienvenue chez* **Les ${row[0].nom}** *avec tous les <@&${row[0].roleID + "test"}>*
+                    description: `*Bienvenue chez* **Les ${row[0].nomMaison}** *avec tous les <@&${row[0].roleID}>*
 N'oublie pas d'utiliser la commande /obj afin de rentrer ton objectif à atteindre en fin de saison. <:Doku:633642377378267136>`
                 }
 

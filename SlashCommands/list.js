@@ -32,10 +32,26 @@ module.exports = {
         ]
     },
 
-    list: function (interaction) {
-        db.all(`SELECT username, points, nb_training FROM Users WHERE maison_id = ${+interaction.options["_hoistedOptions"][0].value} ORDER BY points DESC`, function (err, row) {
+    list: function (interaction, pool) {
+        pool.query(`
+        WITH TotalPoints AS (
+            SELECT username, SUM(points) AS points
+            FROM Utilisateurs JOIN Evenements USING (userID)
+            WHERE maisonID = ?
+            GROUP BY username),
+        TotalEntrainement AS (
+            SELECT username, COUNT(evenementID) AS nbEntrainement
+            FROM Utilisateurs JOIN Evenements USING (userID)
+            WHERE evenementType = 0 AND maisonID = ?
+            GROUP BY username
+        )
+        SELECT username, points, nbEntrainement
+        FROM TotalPoints JOIN TotalEntrainement USING (username)
+        ORDER BY points DESC;
+        `,[+interaction.options["_hoistedOptions"][0].value, +interaction.options["_hoistedOptions"][0].value], function (err, row) {
             if (err) { console.log(`Error sp: ${err}`); interaction.reply("La commande marche pas dis à Zald de check") }
             else {
+                console.log(row)
                 const page = []
                 const name = ["Vikings", "Chevaliers", "Huns"]
 
@@ -43,18 +59,18 @@ module.exports = {
                     let description = ""
                     if (row.length < 5) {
                         let j;
-                        for (j = 0; j < row.length; j++) { description = description + `**${row[j].username}** : ${row[j].points} points  ${row[j].nb_training} entraînements\n` }
+                        for (j = 0; j < row.length; j++) { description = description + `**${row[j].username}** : ${row[j].points} points • ${row[j].nbEntrainement} entrainements\n` }
                         row.splice(0, j);
                     }
                     else {
-                        for (let j = 0; j < 5; j++) { description = description + `**${row[j].username}** : ${row[j].points} points  ${row[j].nb_training} entraînements\n` }
+                        for (let j = 0; j < 5; j++) { description = description + `**${row[j].username}** : ${row[j].points} points • ${row[j].nbEntrainement} entrainements\n` }
                         row.splice(0, 5);
                     }
 
                     const Embed = new Discord.EmbedBuilder()
                         .setTitle(`Liste des ${name[+interaction.options["_hoistedOptions"][0].value]}`)
                         .setDescription(description)
-                        .setColor(`black`)
+                        .setColor(0x17202A)
                     page.push(Embed)
                 }
                 new Pagination(interaction.channel, page, "page").paginate();

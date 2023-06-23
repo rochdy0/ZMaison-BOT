@@ -22,7 +22,7 @@ module.exports = {
             else if (row[0].boolExist === 0 || row[0].nbMessages >= 1000) return;
             else {
                 pool.query(`
-                INSERT INTO Evenements (evenementType, userID, points, date) 
+                INSERT INTO Evenements (evenementType, userID, points, evenementDate) 
                 VALUES (2, ?, ?, ?);
                 `, [message.author.id, points, new Date().toISOString().substring(0, 10)])
             }

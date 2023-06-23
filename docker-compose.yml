@@ -6,24 +6,9 @@ volumes:
     name: mysqlVolume
 
 services:
-  zmaison:
-    image: zmaisonimage
-    depends_on:
-      - mysql
-    volumes:
-      - "./:/app"
-    ports:
-      - "80:80"
-      - "443:443"
-    env_file:
-      - .env
-    networks:
-      - znetwork
   mysql:
     volumes:
       - mysqlVolume:/var/lib/mysql
     image: mysql/mysql-server:8.0
-    networks:
-      - znetwork
-networks:
-  znetwork:
+    ports:
+      - "3306:3306"

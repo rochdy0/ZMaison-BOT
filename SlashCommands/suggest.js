@@ -1,5 +1,4 @@
 const { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
-const msg = require('./msg');
 
 const modal = new ModalBuilder()
     .setCustomId('SuggModal')
