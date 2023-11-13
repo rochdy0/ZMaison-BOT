@@ -47,7 +47,7 @@ function ajouterPoints(message, date, points, pool) {
     message.react('✅')
 }
 
-function reply(interaction, content) { interaction.reply({ content: content, ephemeral: true }) }
+function replyD(interaction, content) { interaction.reply({ content: content, ephemeral: true }) }
 
 module.exports = {
     data: {
@@ -62,24 +62,43 @@ module.exports = {
     defisent: function (interaction, pool) {
         const points = interaction.fields.getTextInputValue('pointsModal');
         const defiDate = JSON.stringify(Message.createdAt).slice(1, 11)
+        console.log("1")
         if (estNombre(points)) {
+            console.log("2")
             if (contientObjet(Message.attachments)) {
+                console.log("3")
                 if (estVideo(Message.attachments.first())) {
-                    if (!dejaFait(Message, defiDate, pool)) {
-                        ajouterPoints(Message, defiDate, points, pool)
-                        reply(`Le défi a bien été enregistré pour <@${Message.author.id}>`)
-                    }
+                    console.log("4")
+                    let userID = Message.author.id
+                    pool.query(`
+                    SELECT COUNT(evenementID) as boolDefi
+                    FROM Evenements
+                    WHERE userID = ? AND evenementType = 3 AND evenementDate = ?;`, [userID, defiDate], function (err, row) {
+                            errSQL(err, 'defi dejaFait')
+                            if (row[0].boolDefi > 0)
+                            {
+                                interaction.reply({content: `Le défi a déjà été enregistré pour <@${Message.author.id}>`, ephemeral: true })
+                            }
+                            else
+                            {
+                                interaction.reply({content: `Le défi a bien été enregistré pour <@${Message.author.id}>`, ephemeral: true })
+                                ajouterPoints(Message, defiDate, points, pool)
+                            }
+                        })
                 }
                 else {
-                    reply("Ce message n'est pas une vidéo")
+                    console.log("6")
+                    interaction.reply({content: "Ce message n'est pas une vidéo", ephemeral: true })
                 }
             }
             else {
-                reply("Ce message ne contient pas de vidéo")
+                console.log("7")
+                interaction.reply({content: "Ce message ne contient pas de vidéo", ephemeral: true })
             }
         }
         else {
-            reply("Uniquement les nombres sont acceptés")
+            console.log("8")
+            interaction.reply({content: "Uniquement les nombres sont acceptés", ephemeral: true })
         }
     }
 }

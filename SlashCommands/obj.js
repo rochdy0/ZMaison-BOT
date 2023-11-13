@@ -45,7 +45,8 @@ Sa description : \`\`\`${row[0].detailObjectif}\`\`\``, ephemeral: true})
                 })
             }
             else {
-                await interaction.showModal(modal);
+                interaction.reply({content: "Tu n'avait pas rentré d'objectif avant la fin du temps imparti"})
+                // await interaction.showModal(modal);
             }
         })
     },

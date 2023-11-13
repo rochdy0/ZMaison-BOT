@@ -35,7 +35,7 @@ module.exports = {
           entrainementTable AS (
               SELECT U.maisonID, COUNT(E.evenementID) AS nbENtrainements
               FROM Utilisateurs U JOIN Evenements E USING (userID)
-              WHERE E.evenementType = 0
+              WHERE E.evenementType Nn= 0
               GROUP BY U.maisonID
           ),
           pointsTable AS (
