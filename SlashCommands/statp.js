@@ -56,7 +56,7 @@ module.exports = {
         WHERE userID = ? ${value === 4 ? '' : 'AND EvenementType = ?'}
         GROUP BY evenementDate;`
         pool.query(sql, [interaction.user.id, value], async function (err, row) {
-            let startTime = new Date('2023-04-24T22:00:00.000Z').getTime();
+            let startTime = new Date('2024-03-01T22:00:00.000Z').getTime();
             let endTime = new Date().getTime();
             let data = []
             let label = []
@@ -81,7 +81,7 @@ module.exports = {
             }
             rainbow = new Rainbow();
             rainbow.setSpectrum('red', 'blue')
-            rainbow.setNumberRange(0, data.length - 1)
+            rainbow.setNumberRange(0, data.length)
             color = []
             bcolor = []
             for (let i = 0; i < data.length; i++) {

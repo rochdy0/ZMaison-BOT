@@ -57,29 +57,32 @@ const pool = mysql.createPool({
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    // require('./Automatisations/SortingHat.js').checkMessage(client)
-    require('./Automatisations/LeaderBoard.js').leaderBoard(client, pool)
+    require('./Automatisations/SortingHat.js').checkMessage(client)
+    //require('./Automatisations/LeaderBoard.js').leaderBoard(client, pool)
 
-    setInterval(function () { require('./Automatisations/LeaderBoard.js').leaderBoard(client, pool) }, 10 * 60 * 1000);
-    setInterval(function () { require('./Automatisations/ChannelName.js').channelName(client, pool) }, 10 * 60 * 1000);
+    // setInterval(function () { require('./Automatisations/LeaderBoard.js').leaderBoard(client, pool) }, 10 * 60 * 1000);
+    // setInterval(function () { require('./Automatisations/ChannelName.js').channelName(client, pool) }, 10 * 60 * 1000);
 });
 
 
 client.on('interactionCreate', interaction => {
-    // if (interaction.customId === "sh_button") { require('./Automatisations/SortingHat.js').CreateUser(interaction, client, pool) }
-    if (interaction.customId === "SuggModal") { require('./SlashCommands/suggest.js').suggestsent(interaction, client) }
+    if (interaction.customId === "sh_button") { require('./Automatisations/SortingHat.js').CreateUser(interaction, client, pool) }
+    else if (interaction.customId === "SuggModal") { require('./SlashCommands/suggest.js').suggestsent(interaction, client) }
     else if (interaction.customId == "defiModal") { require('./SlashCommands/defi.js').defisent(interaction, pool) }
     else if (interaction.isModalSubmit()) { require('./SlashCommands/obj.js').updateObj(interaction, pool) }
-    // else if (interaction.customId === "wk_button") { require('./Automatisations/MaisonScore.js').trainingPoint(interaction, pool) }
+    else if (interaction.customId === "wk_button") { require('./Automatisations/MaisonScore.js').trainingPoint(interaction, pool) }
     else if (interaction.commandName === "stats") { require('./SlashCommands/stats.js').stats(interaction, pool) }
     else if (interaction.commandName === "obj") { require('./SlashCommands/obj.js').checkObj(interaction, pool) }
     else if (interaction.customId == '◀️' || interaction.customId == '▶️' || interaction.customId == '⏮️' || interaction.customId == '⏭️' || interaction.customId == '⏹️') return;
-    else SlashCommands[interaction.commandName](interaction, pool, client)
+    else {
+        console.log(interaction.customId)
+        console.log(interaction.commandName)
+        SlashCommands[interaction.commandName](interaction, pool, client)}
 });
 
 
 client.on('messageCreate', function (message) {
     if (message.author.bot) return;
-    // require('./Automatisations/MessagePoint.js').messagePoint(message, pool)
-    // require('./Automatisations/VideoPoint.js').videoPoint(message, client, pool)
+    require('./Automatisations/MessagePoint.js').messagePoint(message, pool)
+    require('./Automatisations/VideoPoint.js').videoPoint(message, client, pool)
 });

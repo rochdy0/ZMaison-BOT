@@ -36,11 +36,9 @@ module.exports = {
     // Adds  or Removes role depending on the member already have it or not.
     CreateUser: function (interaction, client, pool) {
         let maison_number = 1;
-        // do
-        // {
-        //     maison_number = Math.floor(Math.random() * 3);
-        // }
-        // while (maison_number == 1)
+
+        maison_number = Math.floor(Math.random() * 2);
+
         pool.query(`
             WITH UserExist AS (
                 SELECT COUNT(userID) AS boolExist

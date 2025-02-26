@@ -4,7 +4,7 @@ module.exports = {
           name: "ZMaisonEDTv2",
           script: "./index.js",
           env: {
-              "DISCORD_TOKEN": "MTAxNDE3MzM5NjUzNzQ2Mjg2NA.G__s8H.9H5QZyfBwcKLYLGIaaem2inLUmHde_ePSL-s-s",
+              "DISCORD_TOKEN": "",
               "DISCORD_ID": "1014173396537462864",
               "DISCORD_SERVER_ID": "610928463590981634",
               "DISCORD_CHANNEL_BOT_MEME_SPAM_ID": "611864040699985931",
